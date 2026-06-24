@@ -1,0 +1,6 @@
+{
+  "name": "SEMPS VC",
+  "description": "Plataforma digital da Secretaria Municipal de Promoção Social de Vera Cruz/BA para agendamentos do CadÚnico, cursos, consulta de benefícios, vagas de emprego e atendimento virtual.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
