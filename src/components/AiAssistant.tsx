@@ -22,7 +22,7 @@ export default function AiAssistant() {
     'Como posso agendar o CadÚnico?',
     'Quais documentos preciso levar para o CRAS?',
     'Como funciona o Bolsa Família Municipal?',
-    'Como me inscrevo nas oficinas gratuitas?'
+    'Como me inscrevo nas oficinas de capacitação?'
   ];
 
   const scrollToBottom = () => {
@@ -89,16 +89,16 @@ export default function AiAssistant() {
   };
 
   return (
-    <div className="max-w-3xl mx-auto bg-white rounded-3xl border border-slate-100 shadow-xl flex flex-col h-[600px] overflow-hidden animate-fade-in">
+    <div className="max-w-3xl mx-auto bg-white rounded-[32px] border border-brand-green-light shadow-xl flex flex-col h-[600px] overflow-hidden animate-fade-in">
       {/* Chat Header */}
-      <div className="bg-brand-green-dark p-4 text-white flex items-center justify-between border-b border-brand-green">
+      <div className="bg-brand-green-dark p-4 text-white flex items-center justify-between border-b border-brand-green-light">
         <div className="flex items-center gap-3">
           <div className="bg-white/10 p-2 rounded-xl text-yellow-300">
             <Sparkles className="w-5 h-5 fill-yellow-300" />
           </div>
           <div>
-            <h2 className="font-display font-bold text-sm">Assistente de IA da SEMPS</h2>
-            <p className="text-[10px] text-brand-green-light font-light">Disponível 24h • Dúvidas Institucionais</p>
+            <h2 className="font-display font-semibold italic text-sm">Assistente de IA da SEMPS</h2>
+            <p className="text-[10px] text-brand-cream-dark font-light">Disponível 24h • Dúvidas Institucionais</p>
           </div>
         </div>
         <div className="flex items-center gap-1 bg-brand-green/30 border border-brand-green-light/20 px-2 py-1 rounded-full text-[9px] font-bold uppercase tracking-wider">
@@ -116,16 +116,16 @@ export default function AiAssistant() {
               className={`flex gap-3 max-w-[85%] ${isAssistant ? 'mr-auto' : 'ml-auto flex-row-reverse'}`}
             >
               {/* Icon */}
-              <div className={`p-2 rounded-full h-8 w-8 flex items-center justify-center shrink-0 ${isAssistant ? 'bg-brand-green-light text-brand-green-dark' : 'bg-slate-200 text-slate-700'}`}>
+              <div className={`p-2 rounded-full h-8 w-8 flex items-center justify-center shrink-0 ${isAssistant ? 'bg-brand-green-light text-brand-green-dark border border-brand-green-light' : 'bg-brand-cream text-brand-green-dark border border-brand-green-light'}`}>
                 {isAssistant ? <Bot className="w-4 h-4" /> : <User className="w-4 h-4" />}
               </div>
 
               {/* Balloon */}
               <div className="space-y-1">
-                <div className={`p-4 rounded-2xl text-xs leading-relaxed ${isAssistant ? 'bg-white border border-slate-100 text-slate-800 rounded-tl-xs' : 'bg-brand-green text-white rounded-tr-xs shadow-sm'}`}>
+                <div className={`p-4 rounded-2xl text-xs leading-relaxed ${isAssistant ? 'bg-white border border-brand-green-light text-brand-green-dark rounded-tl-xs shadow-xs' : 'bg-brand-green text-white rounded-tr-xs shadow-sm'}`}>
                   {msg.text}
                 </div>
-                <p className={`text-[9px] text-slate-400 font-mono ${isAssistant ? 'text-left' : 'text-right'}`}>
+                <p className={`text-[9px] text-[#5a5a40]/70 font-mono ${isAssistant ? 'text-left' : 'text-right'}`}>
                   {msg.timestamp}
                 </p>
               </div>
@@ -135,22 +135,22 @@ export default function AiAssistant() {
 
         {loading && (
           <div className="flex gap-3 max-w-[80%] mr-auto">
-            <div className="p-2 rounded-full h-8 w-8 bg-brand-green-light text-brand-green-dark flex items-center justify-center animate-pulse">
+            <div className="p-2 rounded-full h-8 w-8 bg-brand-green-light text-brand-green-dark flex items-center justify-center animate-pulse border border-brand-green-light">
               <Bot className="w-4 h-4" />
             </div>
-            <div className="bg-white border border-slate-100 p-4 rounded-2xl rounded-tl-xs flex items-center gap-1.5 text-xs text-slate-500 font-light">
+            <div className="bg-white border border-brand-green-light p-4 rounded-2xl rounded-tl-xs flex items-center gap-1.5 text-xs text-[#5a5a40] font-light">
               <span>Digitando resposta</span>
               <span className="flex gap-0.5 mt-1">
-                <span className="w-1 h-1 bg-slate-400 rounded-full animate-bounce delay-100"></span>
-                <span className="w-1 h-1 bg-slate-400 rounded-full animate-bounce delay-200"></span>
-                <span className="w-1 h-1 bg-slate-400 rounded-full animate-bounce delay-300"></span>
+                <span className="w-1 h-1 bg-brand-green rounded-full animate-bounce delay-100"></span>
+                <span className="w-1 h-1 bg-brand-green rounded-full animate-bounce delay-200"></span>
+                <span className="w-1 h-1 bg-brand-green rounded-full animate-bounce delay-300"></span>
               </span>
             </div>
           </div>
         )}
 
         {error && (
-          <div className="p-3 bg-red-50 text-red-700 text-xs rounded-lg border border-red-100 flex items-center gap-2">
+          <div className="p-3 bg-red-50 text-red-700 text-xs rounded-xl border border-red-150 flex items-center gap-2">
             <AlertCircle className="w-4 h-4 shrink-0" />
             <span>{error}</span>
           </div>
@@ -160,17 +160,17 @@ export default function AiAssistant() {
       </div>
 
       {/* Sugeridos & Input Row */}
-      <div className="p-4 bg-white border-t border-slate-100 space-y-3">
+      <div className="p-4 bg-white border-t border-brand-green-light/40 space-y-3">
         {/* Helper suggestions questions */}
         {messages.length === 1 && (
           <div className="space-y-1">
-            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Perguntas Frequentes:</p>
+            <p className="text-[10px] text-brand-green-dark font-bold uppercase tracking-wider">Perguntas Frequentes:</p>
             <div className="flex flex-wrap gap-1.5">
               {suggestionQuestions.map((question, idx) => (
                 <button
                   key={idx}
                   onClick={() => handleSend(question)}
-                  className="bg-slate-50 hover:bg-brand-green-light/20 text-[10px] text-slate-700 hover:text-brand-green-dark border border-slate-200 hover:border-brand-green/30 px-3 py-1.5 rounded-full transition"
+                  className="bg-brand-cream hover:bg-brand-green-light/30 text-[10px] text-brand-green-dark border border-brand-green-light px-3 py-1.5 rounded-full transition"
                 >
                   {question}
                 </button>
@@ -190,12 +190,12 @@ export default function AiAssistant() {
             onChange={(e) => setInput(e.target.value)}
             placeholder="Digite sua dúvida sobre os serviços da SEMPS..."
             disabled={loading}
-            className="flex-1 border border-slate-200 px-4 py-3 rounded-xl focus:outline-none focus:border-brand-green text-xs"
+            className="flex-1 border border-brand-green-light px-4 py-3 rounded-xl focus:outline-none focus:border-brand-green text-xs bg-brand-cream/10"
           />
           <button
             type="submit"
             disabled={loading || !input.trim()}
-            className="bg-brand-green hover:bg-brand-green-dark disabled:opacity-40 text-white p-3 rounded-xl transition shadow-md shrink-0 flex items-center justify-center"
+            className="bg-brand-green hover:bg-brand-green-dark disabled:opacity-40 text-white p-3.5 rounded-full transition shadow-md shrink-0 flex items-center justify-center"
           >
             <Send className="w-4 h-4" />
           </button>

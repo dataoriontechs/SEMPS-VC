@@ -1,0 +1,225 @@
+{
+  "entities": {
+    "Unidade": {
+      "title": "Unidade",
+      "description": "SEMPS units",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "address": { "type": "string" },
+        "phone": { "type": "string" },
+        "hours": { "type": "string" },
+        "services": { "type": "array" },
+        "lat": { "type": "number" },
+        "lng": { "type": "number" }
+      }
+    },
+    "Noticia": {
+      "title": "Noticia",
+      "description": "Notícias e comunicados da SEMPS",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "content": { "type": "string" },
+        "date": { "type": "string" },
+        "category": { "type": "string" },
+        "author": { "type": "string" },
+        "isImportant": { "type": "boolean" }
+      }
+    },
+    "Curso": {
+      "title": "Curso",
+      "description": "Cursos e oficinas profissionalizantes",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "requirements": { "type": "string" },
+        "totalSlots": { "type": "number" },
+        "availableSlots": { "type": "number" },
+        "registeredUsers": { "type": "array" },
+        "category": { "type": "string" },
+        "schedule": { "type": "string" }
+      }
+    },
+    "Vaga": {
+      "title": "Vaga",
+      "description": "Vagas de emprego do Contrata Vera Cruz",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "company": { "type": "string" },
+        "description": { "type": "string" },
+        "requirements": { "type": "string" },
+        "contact": { "type": "string" },
+        "type": { "type": "string" },
+        "salary": { "type": "string" },
+        "location": { "type": "string" },
+        "createdAt": { "type": "string" }
+      }
+    },
+    "Beneficio": {
+      "title": "Beneficio",
+      "description": "Benefícios sociais dos cidadãos",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userCpf": { "type": "string" },
+        "name": { "type": "string" },
+        "description": { "type": "string" },
+        "status": { "type": "string" },
+        "observations": { "type": "string" },
+        "lastUpdated": { "type": "string" }
+      }
+    },
+    "Agendamento": {
+      "title": "Agendamento",
+      "description": "Agendamentos presenciais para CadÚnico",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "userName": { "type": "string" },
+        "userCpf": { "type": "string" },
+        "userPhone": { "type": "string" },
+        "date": { "type": "string" },
+        "time": { "type": "string" },
+        "unitId": { "type": "string" },
+        "unitName": { "type": "string" },
+        "status": { "type": "string" },
+        "createdAt": { "type": "string" }
+      }
+    },
+    "Usuario": {
+      "title": "Usuario",
+      "description": "Cadastro de usuários e administradores",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "nome": { "type": "string" },
+        "cpf": { "type": "string" },
+        "telefone": { "type": "string" },
+        "email": { "type": "string" },
+        "tipo_usuario": { "type": "string" },
+        "ativo": { "type": "boolean" },
+        "created_at": { "type": "string" }
+      }
+    },
+    "InscricaoCurso": {
+      "title": "InscricaoCurso",
+      "description": "Matrículas em cursos",
+      "type": "object",
+      "properties": {
+        "curso_id": { "type": "string" },
+        "usuario_id": { "type": "string" },
+        "status": { "type": "string" },
+        "data_inscricao": { "type": "string" }
+      }
+    },
+    "SchedulingModel": {
+      "title": "SchedulingModel",
+      "description": "Modelos de agendamento de serviços",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "serviceType": { "type": "string" },
+        "location": { "type": "string" },
+        "unitId": { "type": "string" },
+        "days": { "type": "array" },
+        "hours": { "type": "array" },
+        "active": { "type": "boolean" },
+        "interval": { "type": "number" },
+        "slotsPerTime": { "type": "number" }
+      }
+    },
+    "SystemNotification": {
+      "title": "SystemNotification",
+      "description": "Notificações enviadas aos usuários",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "message": { "type": "string" },
+        "targetType": { "type": "string" },
+        "userId": { "type": "string" },
+        "createdAt": { "type": "string" },
+        "readBy": { "type": "array" }
+      }
+    },
+    "CourseEnrollment": {
+      "title": "CourseEnrollment",
+      "description": "Matrícula detalhada em curso",
+      "type": "object",
+      "properties": {
+        "courseId": { "type": "string" },
+        "userId": { "type": "string" },
+        "fullName": { "type": "string" },
+        "cpf": { "type": "string" },
+        "status": { "type": "string" }
+      }
+    },
+    "SystemConfig": {
+      "title": "SystemConfig",
+      "description": "Configurações globais do sistema",
+      "type": "object",
+      "properties": {
+        "daysOfOperation": { "type": "array" },
+        "municipalHolidays": { "type": "array" },
+        "blockedDates": { "type": "array" }
+      }
+    }
+  },
+  "firestore": {
+    "/unidades/{unidadeId}": {
+      "schema": "Unidade",
+      "description": "SEMPS units"
+    },
+    "/noticias/{noticiaId}": {
+      "schema": "Noticia",
+      "description": "SEMPS news"
+    },
+    "/cursos/{cursoId}": {
+      "schema": "Curso",
+      "description": "SEMPS courses"
+    },
+    "/vagas/{vagaId}": {
+      "schema": "Vaga",
+      "description": "Vagas de emprego"
+    },
+    "/beneficios/{beneficioId}": {
+      "schema": "Beneficio",
+      "description": "Benefícios sociais"
+    },
+    "/agendamentos/{agendamentoId}": {
+      "schema": "Agendamento",
+      "description": "Agendamentos CadÚnico"
+    },
+    "/usuarios/{usuarioId}": {
+      "schema": "Usuario",
+      "description": "Informações de perfil"
+    },
+    "/inscricoes_cursos/{inscricaoId}": {
+      "schema": "InscricaoCurso",
+      "description": "Inscrições em cursos"
+    },
+    "/modelos_agendamento/{modelId}": {
+      "schema": "SchedulingModel",
+      "description": "Modelos de agendamento de serviços"
+    },
+    "/notificacoes_sistema/{notificationId}": {
+      "schema": "SystemNotification",
+      "description": "Notificações do sistema"
+    },
+    "/inscricoes_cursos_detalhes/{enrollmentId}": {
+      "schema": "CourseEnrollment",
+      "description": "Inscrições detalhadas em cursos"
+    },
+    "/configuracoes_sistema/{configId}": {
+      "schema": "SystemConfig",
+      "description": "Configurações gerais do sistema"
+    }
+  }
+}

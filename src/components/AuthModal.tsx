@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { User } from '../types';
+import { useAuth } from '../context/AuthContext';
 import { Shield, Key, Mail, User as UserIcon, Phone, FileText, MapPin, CheckCircle2, AlertCircle } from 'lucide-react';
 
 interface AuthModalProps {
@@ -82,7 +83,9 @@ export default function AuthModal({ isOpen, onClose, onLoginSuccess }: AuthModal
   const [nis, setNis] = useState('');
   const [motherName, setMotherName] = useState('');
   const [fatherName, setFatherName] = useState('');
-  const [acceptTerms, setAcceptTerms] = useState(false);
+  const [acceptTerms, setAcceptTerms] = useState<boolean>(false);
+  
+  const { login, register, recoverPassword } = useAuth();
 
   if (!isOpen) return null;
 
@@ -121,18 +124,8 @@ export default function AuthModal({ isOpen, onClose, onLoginSuccess }: AuthModal
     setLoading(true);
 
     try {
-      const response = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password })
-      });
-
-      const data = await response.json();
-      if (!response.ok) {
-        throw new Error(data.error || 'Erro ao realizar login.');
-      }
-
-      onLoginSuccess(data.user);
+      const loggedInUser = await login(email, password);
+      onLoginSuccess(loggedInUser);
       resetForm();
       onClose();
     } catch (err: any) {
@@ -176,30 +169,20 @@ export default function AuthModal({ isOpen, onClose, onLoginSuccess }: AuthModal
     setLoading(true);
 
     try {
-      const response = await fetch('/api/auth/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email,
-          password,
-          name,
-          cpf,
-          address,
-          phone,
-          nis,
-          motherName: motherName || undefined,
-          fatherName: fatherName || undefined
-        })
+      await register({
+        email,
+        password,
+        name,
+        cpf,
+        address,
+        phone,
+        nis,
+        motherName: motherName || undefined,
+        fatherName: fatherName || undefined
       });
-
-      const data = await response.json();
-      if (!response.ok) {
-        throw new Error(data.error || 'Erro ao realizar cadastro.');
-      }
 
       setSuccess('Cadastro realizado com sucesso! Faça login agora.');
       setIsLogin(true);
-      // keep email filled, clear passwords
       setPassword('');
       setConfirmPassword('');
     } catch (err: any) {
@@ -222,18 +205,8 @@ export default function AuthModal({ isOpen, onClose, onLoginSuccess }: AuthModal
     setLoading(true);
 
     try {
-      const response = await fetch('/api/auth/recover-password', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email })
-      });
-
-      const data = await response.json();
-      if (!response.ok) {
-        throw new Error(data.error || 'Erro na recuperação.');
-      }
-
-      setSuccess(data.message);
+      const msg = await recoverPassword(email);
+      setSuccess(msg);
     } catch (err: any) {
       setError(err.message || 'Erro de conexão.');
     } finally {

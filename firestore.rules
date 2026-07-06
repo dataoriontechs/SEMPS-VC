@@ -1,0 +1,143 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Check if the user is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // Helper to get user profile data safely
+    function getUserData() {
+      return get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data;
+    }
+
+    // Check if the user has a specific role
+    function hasRole(role) {
+      return isAuthenticated() && 
+        exists(/databases/$(database)/documents/usuarios/$(request.auth.uid)) &&
+        getUserData().tipo_usuario == role;
+    }
+
+    // Check if the user is an admin
+    function isAdmin() {
+      return (isAuthenticated() && request.auth.token.email != null && (
+        request.auth.token.email == 'dataoriontechs@gmail.com' ||
+        request.auth.token.email == 'admin@semps.gov.br' ||
+        request.auth.token.email == 'admin@sempsvc.gov.br' ||
+        request.auth.token.email.matches('.*@semps\\.gov\\.br$') ||
+        request.auth.token.email.matches('.*@sempsvc\\.gov\\.br$')
+      )) || hasRole('administrador') || hasRole('admin');
+    }
+
+    // Check if the user is a collaborator
+    function isCollaborator() {
+      return (isAuthenticated() && request.auth.token.email != null && (
+        request.auth.token.email == 'colaborador@semps.gov.br' ||
+        request.auth.token.email.matches('.*colaborador.*')
+      )) || hasRole('colaborador');
+    }
+
+    // Check if the user is the owner of the document
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // Unidades (SEMPS units) - Public read, Admin write
+    match /unidades/{document} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Banners (Landing Page carousel) - Public read, Admin/Collaborator write
+    match /banners/{document} {
+      allow read: if true;
+      allow write: if isAdmin() || isCollaborator();
+    }
+
+    // Noticias (News) - Public read, Admin/Collaborator write, Admin delete
+    match /noticias/{document} {
+      allow read: if true;
+      allow create, update: if isAdmin() || isCollaborator();
+      allow delete: if isAdmin();
+    }
+
+    // Cursos (Courses) - Public read, Admin or Authenticated write
+    match /cursos/{document} {
+      allow read: if true;
+      allow write: if isAuthenticated() || isAdmin();
+    }
+
+    // Vagas (Job vacancies) - Public read, Admin write
+    match /vagas/{document} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Beneficios (Benefits) - Public read, write
+    match /beneficios/{document} {
+      allow read, write: if true;
+    }
+
+    // Agendamentos (Appointments) - Public read/write
+    match /agendamentos/{document} {
+      allow read, write: if true;
+    }
+
+    // Usuarios (Users profiles) - Owner first to avoid evaluation errors for new users, then Admin/Collaborator
+    match /usuarios/{document} {
+      allow read: if true;
+      allow create: if true; 
+      allow update: if true;
+      allow delete: if isAdmin() || (document in ['admin_semps_gov_br', 'colaborador_semps_gov_br', 'maria_gmail_com']);
+    }
+
+    // Inscricoes_cursos (Course registrations)
+    match /inscricoes_cursos/{document} {
+      allow read, write: if true;
+    }
+
+    // Candidaturas (Job applications)
+    match /candidaturas/{document} {
+      allow read, write: if true;
+    }
+
+    // Configuracoes (Settings)
+    match /configuracoes/{document} {
+      allow read, write: if isAdmin();
+    }
+
+    // Modelos de Agendamento (Scheduling Models)
+    match /modelos_agendamento/{document} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Notificacoes do Sistema (System Notifications)
+    match /notificacoes_sistema/{document} {
+      allow read, write: if true;
+    }
+
+    // Inscricoes Cursos Detalhes (Detailed Course Enrollments)
+    match /inscricoes_cursos_detalhes/{document} {
+      allow read, write: if true;
+    }
+
+    // Configuracoes do Sistema (System Configuration)
+    match /configuracoes_sistema/{document} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Logs do Sistema (System logs)
+    match /logs_sistema/{document} {
+      allow read: if isAdmin();
+      allow create: if true;
+    }
+
+    // Tipos de Beneficios (Benefit Types)
+    match /tipos_beneficios/{document} {
+      allow read, write: if true;
+    }
+  }
+}

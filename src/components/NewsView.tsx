@@ -6,6 +6,14 @@ interface NewsViewProps {
   news: News[];
 }
 
+const defaultCategoryImages: Record<string, string> = {
+  campanha: 'https://images.unsplash.com/photo-1573164713714-d95e436ab8d6?q=80&w=600&auto=format&fit=crop',
+  comunicado: 'https://images.unsplash.com/photo-1515187029135-18ee286d815b?q=80&w=600&auto=format&fit=crop',
+  evento: 'https://images.unsplash.com/photo-1544027993-37dbfe43562a?q=80&w=600&auto=format&fit=crop',
+  aviso: 'https://images.unsplash.com/photo-1450133064473-71024230f91b?q=80&w=600&auto=format&fit=crop',
+};
+const defaultFallbackImage = 'https://images.unsplash.com/photo-1557804506-669a67965ba0?q=80&w=600&auto=format&fit=crop';
+
 export default function NewsView({ news }: NewsViewProps) {
   const [activeCategory, setActiveCategory] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -85,6 +93,17 @@ export default function NewsView({ news }: NewsViewProps) {
               )}
               
               <div className="space-y-3">
+                <div className="w-full h-40 rounded-xl overflow-hidden bg-slate-100 shrink-0 border border-slate-100 mb-2">
+                  <img 
+                    src={item.image || defaultCategoryImages[item.category] || defaultFallbackImage} 
+                    alt={item.title} 
+                    className="w-full h-full object-cover select-none" 
+                    referrerPolicy="no-referrer"
+                    onError={(e) => {
+                      e.currentTarget.src = defaultCategoryImages[item.category] || defaultFallbackImage;
+                    }}
+                  />
+                </div>
                 <div className="flex items-center gap-2">
                   <span className={`text-[9px] font-bold tracking-wide uppercase px-2 py-0.5 rounded-full ${
                     item.category === 'campanha' ? 'bg-red-50 text-red-700 border border-red-100' :

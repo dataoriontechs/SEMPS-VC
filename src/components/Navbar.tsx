@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
-import { User } from '../types';
-import { Building, LogIn, LogOut, Menu, X, ArrowDownToLine, Bell, ShieldAlert } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { User, SystemNotification } from '../types';
+import { Building, LogIn, LogOut, Menu, X, ArrowDownToLine, Bell, ShieldAlert, Check } from 'lucide-react';
+import { notificationsService } from '../services/firestoreService';
 
 interface NavbarProps {
   user: User | null;
@@ -8,44 +9,73 @@ interface NavbarProps {
   onOpenAuth: () => void;
   activeTab: string;
   setActiveTab: (tab: string) => void;
+  onOpenPwa: () => void;
 }
 
-export default function Navbar({ user, onLogout, onOpenAuth, activeTab, setActiveTab }: NavbarProps) {
+export default function Navbar({ user, onLogout, onOpenAuth, activeTab, setActiveTab, onOpenPwa }: NavbarProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [installed, setInstalled] = useState(false);
+  const [notifications, setNotifications] = useState<SystemNotification[]>([]);
 
-  const menuItems = [
-    { id: 'home', label: 'Início' },
-    { id: 'cadunico', label: 'CadÚnico' },
-    { id: 'beneficios', label: 'Consultar Benefícios' },
-    { id: 'cursos', label: 'Cursos & Oficinas' },
-    { id: 'contrata', label: 'Contrata Vera Cruz' },
-    { id: 'unidades', label: 'Unidades SEMPS' },
-  ];
+  useEffect(() => {
+    // Check if running as PWA or was installed
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone || localStorage.getItem('pwa-installed') === 'true';
+    if (isStandalone) {
+      setInstalled(true);
+    }
+  }, []);
 
-  if (user?.role === 'admin') {
-    // Add admin dashboard
-    menuItems.push({ id: 'admin-dashboard', label: 'Painel Admin' });
+  useEffect(() => {
+    if (!user) {
+      setNotifications([]);
+      return;
+    }
+    const unsub = notificationsService.subscribeNotifications(user.id, user.role, (data) => {
+      setNotifications(data);
+    });
+    return () => unsub();
+  }, [user]);
+
+  const unreadCount = user ? notifications.filter(n => !n.readBy?.includes(user.id)).length : 0;
+
+  let menuItems: { id: string; label: string }[] = [];
+  const isAdminOrColab = user?.role === 'admin' || user?.role === 'administrador' || user?.role === 'colaborador';
+
+  if (isAdminOrColab) {
+    menuItems = [
+      { id: 'admin-dashboard', label: user?.role === 'colaborador' ? 'Painel de Gestão' : 'Painel Administrativo' }
+    ];
+  } else {
+    menuItems = [
+      { id: 'home', label: 'Início' },
+      { id: 'cadunico', label: 'CadÚnico' },
+      { id: 'beneficios', label: 'Consultar Benefícios' },
+      { id: 'cursos', label: 'Cursos & Oficinas' },
+      { id: 'contrata', label: 'Contrata Vera Cruz' },
+      { id: 'unidades', label: 'Unidades SEMPS' },
+    ];
   }
 
-  const handleInstallApp = () => {
-    alert('🎉 Para instalar o PWA SEMPS VC:\n\n📱 No iOS/Safari: toque em Compartilhar e depois "Adicionar à Tela de Início".\n🤖 No Android/Chrome: toque nos três pontinhos e depois "Instalar Aplicativo".');
-    setInstalled(true);
+  const handleMarkAllRead = () => {
+    if (!user) return;
+    notifications.forEach(n => {
+      if (!n.readBy?.includes(user.id)) {
+        notificationsService.markAsRead(n.id, user.id);
+      }
+    });
   };
 
-  const mockNotifications = [
-    { id: 1, title: 'Mutirão Mar Grande', desc: 'Mutirão de atualização cadastral ativo até sexta-feira.', date: 'Hoje' },
-    { id: 2, title: 'Inscrições Abertas', desc: 'Novas vagas para o curso de Informática e Artesanato.', date: 'Ontem' },
-    { id: 3, title: 'Benefícios atualizados', desc: 'Confira se seu Auxílio Vera Cruz foi aprovado.', date: '3 dias atrás' }
-  ];
+  const handleInstallApp = () => {
+    onOpenPwa();
+  };
 
   return (
     <nav className="sticky top-0 z-40 bg-white text-brand-green-dark border-b border-brand-green-light/70 shadow-sm">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
-          <div className="flex items-center gap-3 cursor-pointer" onClick={() => setActiveTab('home')}>
+          <div className="flex items-center gap-3 cursor-pointer" onClick={() => setActiveTab(isAdminOrColab ? 'admin-dashboard' : 'home')}>
             <div className="bg-brand-green-dark p-2 rounded-lg text-white shadow-sm">
               <Building className="w-5 h-5" />
             </div>
@@ -97,25 +127,48 @@ export default function Navbar({ user, onLogout, onOpenAuth, activeTab, setActiv
                 className="p-2 text-brand-green-dark/80 hover:text-brand-green-dark hover:bg-brand-green-light/30 rounded-full transition relative"
               >
                 <Bell className="w-5 h-5" />
-                <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-brand-green rounded-full border border-white"></span>
+                {unreadCount > 0 && (
+                  <span className="absolute -top-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-red-600 text-[9px] font-bold text-white">
+                    {unreadCount}
+                  </span>
+                )}
               </button>
 
               {showNotifications && (
-                <div className="absolute right-0 mt-2 w-80 bg-white rounded-xl shadow-2xl border border-brand-green-light text-slate-800 p-4 z-50 animate-fade-in">
+                <div className="absolute right-0 mt-2 w-80 bg-white rounded-xl shadow-2xl border border-brand-green-light text-slate-800 p-4 z-50 animate-fade-in max-h-[400px] overflow-y-auto">
                   <div className="flex items-center justify-between border-b border-brand-green-light pb-2 mb-2">
-                    <span className="font-display font-bold text-sm text-brand-green-dark">Comunicados Importantes</span>
-                    <button onClick={() => setShowNotifications(false)} className="text-xs text-brand-green-dark/60 hover:text-brand-green-dark">Fechar</button>
+                    <span className="font-display font-bold text-sm text-brand-green-dark">Notificações ({notifications.length})</span>
+                    <div className="flex gap-2">
+                      {unreadCount > 0 && (
+                        <button 
+                          onClick={handleMarkAllRead} 
+                          className="text-[10px] text-brand-green font-bold hover:underline flex items-center gap-0.5"
+                        >
+                          <Check className="w-3 h-3" /> Ler todas
+                        </button>
+                      )}
+                      <button onClick={() => setShowNotifications(false)} className="text-xs text-brand-green-dark/60 hover:text-brand-green-dark">Fechar</button>
+                    </div>
                   </div>
                   <div className="space-y-3">
-                    {mockNotifications.map((notif) => (
-                      <div key={notif.id} className="border-b border-brand-green-light/20 last:border-0 pb-2 last:pb-0">
-                        <div className="flex justify-between items-start gap-1">
-                          <span className="font-bold text-xs text-brand-green-dark">{notif.title}</span>
-                          <span className="text-[10px] text-brand-green-dark/50 font-mono">{notif.date}</span>
-                        </div>
-                        <p className="text-[11px] text-brand-green-dark/75 leading-normal mt-0.5">{notif.desc}</p>
-                      </div>
-                    ))}
+                    {notifications.length === 0 ? (
+                      <p className="text-xs text-slate-400 text-center py-4">Nenhuma notificação recebida.</p>
+                    ) : (
+                      notifications.map((notif) => {
+                        const isRead = user ? notif.readBy?.includes(user.id) : true;
+                        return (
+                          <div key={notif.id} className={`pb-2 border-b border-slate-100 last:border-0 ${!isRead ? 'bg-brand-green-light/10 p-1.5 rounded-lg' : ''}`}>
+                            <div className="flex justify-between items-start gap-1">
+                              <span className={`font-bold text-xs ${!isRead ? 'text-brand-green-dark' : 'text-slate-700'}`}>{notif.title}</span>
+                              <span className="text-[8px] text-slate-400 font-mono">
+                                {new Date(notif.createdAt).toLocaleDateString('pt-BR')}
+                              </span>
+                            </div>
+                            <p className="text-[11px] text-slate-600 leading-normal mt-0.5">{notif.message}</p>
+                          </div>
+                        );
+                      })
+                    )}
                   </div>
                 </div>
               )}
@@ -127,7 +180,7 @@ export default function Navbar({ user, onLogout, onOpenAuth, activeTab, setActiv
                 <div className="text-right">
                   <p className="text-xs font-bold leading-tight truncate max-w-[120px] text-brand-green-dark">{user.name}</p>
                   <p className="text-[10px] text-[#5a5a40] font-mono capitalize">
-                    {user.role === 'admin' ? 'Administrador 🛡️' : 'Cidadão'}
+                    {(user.role === 'admin' || user.role === 'administrador') ? 'Administrador 🛡️' : user.role === 'colaborador' ? 'Colaborador 💼' : 'Cidadão'}
                   </p>
                 </div>
                 <button
@@ -196,7 +249,9 @@ export default function Navbar({ user, onLogout, onOpenAuth, activeTab, setActiv
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-xs font-bold text-brand-green-dark">{user.name}</p>
-                  <p className="text-[10px] text-[#5a5a40] uppercase tracking-wider">{user.role}</p>
+                  <p className="text-[10px] text-[#5a5a40] uppercase tracking-wider">
+                    {(user.role === 'admin' || user.role === 'administrador') ? 'Administrador 🛡️' : user.role === 'colaborador' ? 'Colaborador 💼' : 'Cidadão'}
+                  </p>
                 </div>
                 <button
                   onClick={() => { onLogout(); setIsOpen(false); }}

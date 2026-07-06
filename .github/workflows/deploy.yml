@@ -1,0 +1,67 @@
+# Workflow do GitHub Actions para Build e Deploy automático no GitHub Pages
+# Este arquivo configura a compilação do projeto Vite e publicação automática no GitHub Pages.
+
+name: Deploy to GitHub Pages
+
+on:
+  # Dispara o workflow sempre que houver um push na branch padrão (geralmente main ou master)
+  push:
+    branches: [ "main", "master" ]
+
+  # Permite que você execute este workflow manualmente na aba Actions do repositório
+  workflow_dispatch:
+
+# Define as permissões necessárias para o token do GitHub Actions realizar o deploy nas Pages
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Permite apenas uma execução concorrente de deploy para evitar conflitos de sincronização
+concurrency:
+  group: "pages"
+  cancel-in-progress: true
+
+jobs:
+  build-and-deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Código-Fonte
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-size: 20
+          node-version: 20
+          cache: 'npm'
+
+      - name: Instalar Dependências
+        run: npm ci
+
+      - name: Copiar Fallback SPA (404.html) para Rotas Dinâmicas
+        # Copia o index.html como 404.html para que o GitHub Pages saiba tratar rotas dinâmicas do React Router
+        run: |
+          cp index.html public/404.html || echo "Nenhum index.html encontrado na raiz ou pasta public."
+
+      - name: Compilar Aplicação (Vite Build)
+        # Executa a compilação de produção e gera a pasta dist/
+        run: npm run build
+
+      - name: Configurar Páginas do GitHub (GitHub Pages Setup)
+        uses: actions/configure-pages@v4
+
+      - name: Fazer Upload do Artefato das Páginas (Pasta dist/)
+        # Envia a pasta gerada pelo build ('dist') para ser hospedada pelo GitHub Pages
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: './dist'
+
+      - name: Realizar Deploy no GitHub Pages
+        # Efetua a publicação do artefato no servidor do GitHub Pages de forma oficial e segura
+        id: deployment
+        uses: actions/deploy-pages@v4
