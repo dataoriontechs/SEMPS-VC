@@ -15,7 +15,7 @@ import {
   limit, 
   onSnapshot 
 } from "../lib/firebase";
-import { News, Course, JobVacancy, SempsUnit, Schedule, BenefitProgram, User, Banner, SchedulingModel, CourseEnrollment, SystemNotification, SystemConfig, BenefitType } from "../types";
+import { News, Course, JobVacancy, SempsUnit, Schedule, BenefitProgram, User, Banner, SchedulingModel, CourseEnrollment, SystemNotification, SystemConfig, BenefitType, AiTrainingDoc } from "../types";
 
 const initialSchedulingModels: SchedulingModel[] = [
   {
@@ -127,7 +127,7 @@ const initialUnits: SempsUnit[] = [
     id: 'unit-1',
     name: 'CRAS Mar Grande',
     address: 'Av. ACM, s/n - Mar Grande, Vera Cruz/BA (próximo à Unidade de Saúde)',
-    phone: '(71) 3633-1234',
+    phone: '(71) 3838-8638',
     hours: 'Segunda a Sexta, das 08h às 17h',
     services: ['CadÚnico (Inscrição e Atualização)', 'BPC (Benefício de Prestação Continuada)', 'Serviço de Convivência e Fortalecimento de Vínculos (SCFV)', 'Atendimento Psicossocial'],
     lat: -12.9647,
@@ -137,7 +137,7 @@ const initialUnits: SempsUnit[] = [
     id: 'unit-2',
     name: 'CRAS Barra do Gil',
     address: 'Rua da Bica, nº 45 - Barra do Gil, Vera Cruz/BA',
-    phone: '(71) 3633-5678',
+    phone: '(71) 3838-8638',
     hours: 'Segunda a Sexta, das 08h às 17h',
     services: ['CadÚnico', 'Apoio Familiar e Acompanhamento do PAIF', 'Oficinas Comunitárias', 'Atendimento Psicológico e de Assistência Social'],
     lat: -12.9833,
@@ -147,9 +147,29 @@ const initialUnits: SempsUnit[] = [
     id: 'unit-3',
     name: 'Sede SEMPS (Centro)',
     address: 'Praça da Matriz, Centro - Vera Cruz/BA',
-    phone: '(71) 3633-1111',
+    phone: '(71) 3838-8792',
     hours: 'Segunda a Sexta, das 08h às 14h',
     services: ['Coordenação Geral', 'Encaminhamento para Programas Estaduais/Federais', 'Benefícios Eventuais (Auxílio Natalidade/Funeral)', 'Habitação Popular'],
+    lat: -12.9622,
+    lng: -38.6056
+  },
+  {
+    id: 'unit-4',
+    name: 'CREAS Vera Cruz',
+    address: 'Av. ACM, Centro - Vera Cruz/BA',
+    phone: '(71) 3838-8646',
+    hours: 'Segunda a Sexta, das 08h às 17h',
+    services: ['Atendimento Especializado a Famílias e Indivíduos (PAEFI)', 'Medidas Socioeducativas em Meio Aberto', 'Acompanhamento Psicológico e Social', 'Defesa de Direitos Violados'],
+    lat: -12.9630,
+    lng: -38.6060
+  },
+  {
+    id: 'unit-5',
+    name: 'Setor de Cadastro Único e Bolsa Família',
+    address: 'Praça da Matriz, Centro - Vera Cruz/BA (Sede SEMPS)',
+    phone: '(71) 3838-8861',
+    hours: 'Segunda a Sexta, das 08h às 14h',
+    services: ['Cadastro Único (Inscrição e Atualização)', 'Acompanhamento de Condicionalidades', 'Consulta e Desbloqueio de Benefícios', 'Tarifa Social de Energia', 'Benefício de Prestação Continuada (BPC)'],
     lat: -12.9622,
     lng: -38.6056
   }
@@ -290,30 +310,27 @@ const defaultBenefitsForMaria = [
 // --- SEED DATABASE FUNCTION ---
 export async function seedDatabaseIfEmpty() {
   try {
-    // 1. Seed Units
-    const unitsSnap = await getDocs(collection(db, "unidades"));
-    if (unitsSnap.empty) {
-      console.log("[Firebase Seed] Seeding units...");
-      for (const unit of initialUnits) {
-        await setDoc(doc(db, "unidades", unit.id), {
-          nome: unit.name,
-          tipo: unit.id === 'unit-3' ? 'sede' : 'cras',
-          endereco: unit.address,
-          telefone: unit.phone,
-          horario_funcionamento: unit.hours,
-          services: unit.services,
-          latitude: unit.lat,
-          longitude: unit.lng,
-          // compatibility fields
-          id: unit.id,
-          name: unit.name,
-          address: unit.address,
-          phone: unit.phone,
-          hours: unit.hours,
-          lat: unit.lat,
-          lng: unit.lng
-        });
-      }
+    // 1. Seed & Update Units
+    console.log("[Firebase Seed] Seeding and updating units...");
+    for (const unit of initialUnits) {
+      await setDoc(doc(db, "unidades", unit.id), {
+        nome: unit.name,
+        tipo: unit.id === 'unit-3' || unit.id === 'unit-5' ? 'sede' : (unit.id === 'unit-4' ? 'creas' : 'cras'),
+        endereco: unit.address,
+        telefone: unit.phone,
+        horario_funcionamento: unit.hours,
+        services: unit.services,
+        latitude: unit.lat,
+        longitude: unit.lng,
+        // compatibility fields
+        id: unit.id,
+        name: unit.name,
+        address: unit.address,
+        phone: unit.phone,
+        hours: unit.hours,
+        lat: unit.lat,
+        lng: unit.lng
+      });
     }
 
     // 2. Seed News
@@ -911,15 +928,14 @@ export const schedulesService = {
       // Check if the scheduled date has already passed
       const scheduleDateStr = data.data || data.date;
       if (scheduleDateStr) {
-        const d = new Date();
-        const year = d.getFullYear();
-        const month = String(d.getMonth() + 1).padStart(2, '0');
-        const day = String(d.getDate()).padStart(2, '0');
-        const todayStr = `${year}-${month}-${day}`;
-        
-        if (scheduleDateStr < todayStr) {
-          // Date has passed, so it is no longer active even if status is scheduled/confirmed
-          return false;
+        const scheduleDate = parseSafeDate(scheduleDateStr);
+        if (scheduleDate) {
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          if (scheduleDate < today) {
+            // Date has passed, so it is no longer active even if status is scheduled/confirmed
+            return false;
+          }
         }
       }
 
@@ -1009,6 +1025,28 @@ export const schedulesService = {
   }
 };
 
+// Helper to safely parse dates in multiple formats (e.g., DD/MM/YYYY, YYYY-MM-DD, etc.)
+function parseSafeDate(dateStr: string): Date | null {
+  if (!dateStr) return null;
+  const cleaned = dateStr.trim();
+  if (cleaned.includes('/')) {
+    const parts = cleaned.split('/');
+    if (parts.length === 3) {
+      return new Date(Number(parts[2]), Number(parts[1]) - 1, Number(parts[0]), 0, 0, 0);
+    }
+  } else if (cleaned.includes('-')) {
+    const parts = cleaned.split('-');
+    if (parts.length === 3) {
+      if (parts[0].length === 4) {
+        return new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]), 0, 0, 0);
+      } else if (parts[2].length === 4) {
+        return new Date(Number(parts[2]), Number(parts[1]) - 1, Number(parts[0]), 0, 0, 0);
+      }
+    }
+  }
+  return null;
+}
+
 // --- BENEFITS SERVICE ---
 export const benefitsService = {
   subscribeAllBenefits: (callback: (benefitsByCpf: { [cpf: string]: BenefitProgram[] }) => void) => {
@@ -1062,6 +1100,7 @@ export const benefitsService = {
 
     // Add new benefits
     for (const b of benefits) {
+      if (b.status === "Não Cadastrado") continue;
       await addDoc(collection(db, "beneficios"), {
         usuario_id: "user-citizen",
         userCpf: cpf,
@@ -1542,3 +1581,78 @@ export const benefitTypesService = {
     await logSistema("tipo_beneficio_excluido", `Tipo de benefício com ID ${id} excluído.`);
   }
 };
+
+export const aiTrainingDocsService = {
+  getAll: async (): Promise<AiTrainingDoc[]> => {
+    try {
+      const q = query(collection(db, "ai_training_docs"), orderBy("createdAt", "desc"));
+      const snapshot = await getDocs(q);
+      return snapshot.docs.map(docSnap => ({
+        id: docSnap.id,
+        ...docSnap.data()
+      })) as AiTrainingDoc[];
+    } catch (error) {
+      console.error("Erro ao carregar documentos de IA:", error);
+      return [];
+    }
+  },
+
+  subscribe: (callback: (docs: AiTrainingDoc[]) => void) => {
+    const q = query(collection(db, "ai_training_docs"), orderBy("createdAt", "desc"));
+    return onSnapshot(q, (snapshot) => {
+      const items: AiTrainingDoc[] = snapshot.docs.map(docSnap => ({
+        id: docSnap.id,
+        ...docSnap.data()
+      })) as AiTrainingDoc[];
+      callback(items);
+    }, (error) => {
+      console.error("Erro no onSnapshot do treinamento de IA:", error);
+    });
+  },
+
+  add: async (docData: Omit<AiTrainingDoc, "id" | "createdAt">): Promise<AiTrainingDoc> => {
+    const newDoc = {
+      title: docData.title,
+      content: docData.content,
+      active: docData.active,
+      createdAt: new Date().toISOString()
+    };
+    const docRef = await addDoc(collection(db, "ai_training_docs"), newDoc);
+    try {
+      await logSistema("doc_ia_criado", `Documento de IA "${docData.title}" adicionado.`);
+    } catch (e) {}
+    return { ...newDoc, id: docRef.id };
+  },
+
+  update: async (id: string, updates: Partial<Omit<AiTrainingDoc, "id" | "createdAt">>): Promise<void> => {
+    const ref = doc(db, "ai_training_docs", id);
+    await updateDoc(ref, {
+      ...updates,
+      updatedAt: new Date().toISOString()
+    });
+    try {
+      await logSistema("doc_ia_atualizado", `Documento de IA ID ${id} atualizado.`);
+    } catch (e) {}
+  },
+
+  delete: async (id: string): Promise<void> => {
+    await deleteDoc(doc(db, "ai_training_docs", id));
+    try {
+      await logSistema("doc_ia_deletado", `Documento de IA ID ${id} deletado.`);
+    } catch (e) {}
+  },
+
+  parsePdf: async (base64Pdf: string): Promise<{ text: string; numpages: number }> => {
+    const response = await fetch("/api/admin/parse-pdf", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ file: base64Pdf })
+    });
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.error || "Erro ao processar PDF no servidor.");
+    }
+    return data;
+  }
+};
+

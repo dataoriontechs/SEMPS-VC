@@ -204,3 +204,12 @@ export interface SystemConfig {
   featuredCampaignIds: string[];
 }
 
+export interface AiTrainingDoc {
+  id: string;
+  title: string;
+  content: string;
+  active: boolean;
+  createdAt: string;
+}
+
+

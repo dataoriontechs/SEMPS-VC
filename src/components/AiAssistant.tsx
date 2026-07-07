@@ -7,7 +7,7 @@ export default function AiAssistant() {
     {
       id: 'msg-welcome',
       sender: 'assistant',
-      text: 'Olá! Sou o Assistente Virtual da SEMPS Vera Cruz/BA. Estou aqui 24h por dia para tirar suas dúvidas sobre o CadÚnico, Bolsa Família, Cursos de Capacitação, benefícios municipais e agendamentos. Como posso lhe ajudar hoje?',
+      text: 'Olá! Meu nome é Vera, sou a sua Assistente Virtual da SEMPS Vera Cruz/BA. Estou aqui para tirar suas dúvidas sobre assistência social, notícias da plataforma, benefícios municipais e programas disponíveis. Como posso lhe ajudar hoje?',
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     }
   ]);
@@ -97,7 +97,7 @@ export default function AiAssistant() {
             <Sparkles className="w-5 h-5 fill-yellow-300" />
           </div>
           <div>
-            <h2 className="font-display font-semibold italic text-sm">Assistente de IA da SEMPS</h2>
+            <h2 className="font-display font-semibold italic text-sm">Vera • Assistente da SEMPS</h2>
             <p className="text-[10px] text-brand-cream-dark font-light">Disponível 24h • Dúvidas Institucionais</p>
           </div>
         </div>

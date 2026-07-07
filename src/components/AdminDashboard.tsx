@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { User, Schedule, Course, News, BenefitProgram, JobVacancy, Banner, SchedulingModel, SystemConfig, BenefitType, SempsUnit, CourseEnrollment } from '../types';
+import { User, Schedule, Course, News, BenefitProgram, JobVacancy, Banner, SchedulingModel, SystemConfig, BenefitType, SempsUnit, CourseEnrollment, AiTrainingDoc } from '../types';
 import { db, collection, query, where, onSnapshot, doc, setDoc, updateDoc } from '../lib/firebase';
 import { ResponsiveContainer, AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
 import { 
@@ -14,7 +14,8 @@ import {
   notificationsService,
   benefitTypesService,
   unitsService,
-  courseEnrollmentsService
+  courseEnrollmentsService,
+  aiTrainingDocsService
 } from '../services/firestoreService';
 import { cloudinaryService } from '../services/cloudinaryService';
 import { Users, Calendar, GraduationCap, Briefcase, Plus, Trash2, CheckCircle2, XCircle, Search, Edit2, FileText, BarChart3, AlertCircle, Upload, Image, Eye, EyeOff, Settings, Megaphone, Building, BookOpen } from 'lucide-react';
@@ -32,6 +33,13 @@ interface AdminDashboardProps {
 export default function AdminDashboard({ user, courses, fetchCourses, fetchJobs, fetchNews, banners = [] }: AdminDashboardProps) {
   const [activeSubTab, setActiveSubTab] = useState<string>('stats');
   const [schedules, setSchedules] = useState<Schedule[]>([]);
+
+  // AI Training states
+  const [aiDocs, setAiDocs] = useState<AiTrainingDoc[]>([]);
+  const [pdfFile, setPdfFile] = useState<File | null>(null);
+  const [isParsingPdf, setIsParsingPdf] = useState<boolean>(false);
+  const [parsedDocText, setParsedDocText] = useState<string>('');
+  const [docTitle, setDocTitle] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>('');
   const [success, setSuccess] = useState<string>('');
@@ -379,6 +387,11 @@ export default function AdminDashboard({ user, courses, fetchCourses, fetchJobs,
       setCandidacies(data);
     });
 
+    // Real-time AI training documents subscription
+    const unsubAiDocs = aiTrainingDocsService.subscribe((data) => {
+      setAiDocs(data);
+    });
+
     return () => {
       unsubSchedules();
       unsubCitizens();
@@ -389,6 +402,7 @@ export default function AdminDashboard({ user, courses, fetchCourses, fetchJobs,
       unsubBenefitTypes();
       unsubUnits();
       unsubCandidacies();
+      unsubAiDocs();
     };
   }, []);
 
@@ -1287,6 +1301,96 @@ export default function AdminDashboard({ user, courses, fetchCourses, fetchJobs,
     }
   };
 
+  const handlePdfFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.type !== "application/pdf") {
+      setError("Por favor, selecione apenas arquivos em formato PDF.");
+      return;
+    }
+
+    setPdfFile(file);
+    setError("");
+    setSuccess("");
+    setIsParsingPdf(true);
+    setParsedDocText("");
+
+    try {
+      const reader = new FileReader();
+      reader.onload = async () => {
+        const base64String = reader.result as string;
+        try {
+          const res = await aiTrainingDocsService.parsePdf(base64String);
+          setParsedDocText(res.text);
+          setDocTitle(file.name.replace(/\.[^/.]+$/, ""));
+          setSuccess("PDF processado e textos extraídos com sucesso! Revise as informações abaixo.");
+        } catch (err: any) {
+          setError(err.message || "Erro ao processar PDF no servidor.");
+        } finally {
+          setIsParsingPdf(false);
+        }
+      };
+      reader.readAsDataURL(file);
+    } catch (err: any) {
+      setError("Falha ao carregar o arquivo PDF.");
+      setIsParsingPdf(false);
+    }
+  };
+
+  const handleSaveAiDoc = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    setSuccess("");
+
+    if (!docTitle || !parsedDocText) {
+      setError("Título e conteúdo do treinamento são obrigatórios.");
+      return;
+    }
+
+    try {
+      await aiTrainingDocsService.add({
+        title: docTitle,
+        content: parsedDocText,
+        active: true
+      });
+      setSuccess(`Documento "${docTitle}" adicionado ao treinamento da IA com sucesso!`);
+      setDocTitle("");
+      setParsedDocText("");
+      setPdfFile(null);
+    } catch (err: any) {
+      setError(err.message || "Erro ao salvar treinamento de IA.");
+    }
+  };
+
+  const handleToggleAiDocActive = async (id: string, currentStatus: boolean) => {
+    setError("");
+    setSuccess("");
+    try {
+      await aiTrainingDocsService.update(id, { active: !currentStatus });
+      setSuccess("Status do documento de treinamento atualizado!");
+    } catch (err: any) {
+      setError(err.message || "Erro ao atualizar status do treinamento.");
+    }
+  };
+
+  const handleDeleteAiDoc = (id: string, title: string) => {
+    showConfirm(
+      "Excluir Documento de Treinamento",
+      `Deseja realmente excluir o documento "${title}"? Ele deixará de ser usado pela IA imediatamente.`,
+      async () => {
+        setError("");
+        setSuccess("");
+        try {
+          await aiTrainingDocsService.delete(id);
+          setSuccess(`Documento "${title}" excluído do treinamento com sucesso.`);
+        } catch (err: any) {
+          setError(err.message || "Erro ao excluir documento de treinamento.");
+        }
+      }
+    );
+  };
+
   return (
     <div className="space-y-8 pb-12 animate-fade-in">
       {/* Header */}
@@ -1408,6 +1512,15 @@ export default function AdminDashboard({ user, courses, fetchCourses, fetchJobs,
               }`}
             >
               <Settings className="w-4 h-4" /> Config do Sistema
+            </button>
+
+            <button
+              onClick={() => { setActiveSubTab('ai_training'); setError(''); setSuccess(''); }}
+              className={`flex-1 min-w-[125px] px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
+                activeSubTab === 'ai_training' ? 'bg-white text-brand-green-dark shadow-sm' : 'text-brand-green-dark/70 hover:text-brand-green-dark'
+              }`}
+            >
+              <FileText className="w-4 h-4" /> Treinar IA (PDF)
             </button>
           </>
         )}
@@ -1682,9 +1795,47 @@ export default function AdminDashboard({ user, courses, fetchCourses, fetchJobs,
                 <div className="space-y-6">
                   {citizenBenefits.map((b) => (
                     <div key={b.id} className="p-5 bg-slate-50 rounded-2xl border border-slate-100 text-xs flex flex-col gap-4 justify-between">
-                      <div className="space-y-1">
-                        <p className="font-bold text-slate-900">{b.name}</p>
-                        <p className="text-slate-500 leading-normal font-light">{b.description}</p>
+                      <div className="space-y-3">
+                        <div className="flex justify-between items-start gap-4">
+                          <div className="space-y-1 flex-1">
+                            <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Nome do Benefício</label>
+                            <input
+                              type="text"
+                              value={b.name}
+                              onChange={(e) => {
+                                const newName = e.target.value;
+                                setCitizenBenefits(prev => prev.map(item => item.id === b.id ? { ...item, name: newName } : item));
+                              }}
+                              className="w-full bg-white border border-slate-200 p-2 rounded-lg text-xs font-bold text-slate-800 focus:outline-none focus:border-brand-green"
+                            />
+                          </div>
+                          {b.status !== 'Não Cadastrado' && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                handleBenefitStatusChange(b.id, 'Não Cadastrado');
+                                handleBenefitObservationChange(b.id, '');
+                                setSuccess(`Benefício "${b.name}" marcado para exclusão. Clique em salvar para confirmar.`);
+                              }}
+                              className="mt-4 px-2.5 py-1.5 text-[10px] font-bold bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 rounded-lg transition flex items-center gap-1 shrink-0"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" /> Excluir do Cidadão
+                            </button>
+                          )}
+                        </div>
+
+                        <div>
+                          <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Descrição do Benefício</label>
+                          <textarea
+                            rows={1}
+                            value={b.description || ''}
+                            onChange={(e) => {
+                              const newDesc = e.target.value;
+                              setCitizenBenefits(prev => prev.map(item => item.id === b.id ? { ...item, description: newDesc } : item));
+                            }}
+                            className="w-full bg-white border border-slate-200 p-2 rounded-lg text-xs text-slate-600 leading-normal focus:outline-none focus:border-brand-green"
+                          />
+                        </div>
                       </div>
 
                       <div className="space-y-3 shrink-0">
@@ -3789,6 +3940,166 @@ export default function AdminDashboard({ user, courses, fetchCourses, fetchJobs,
               </div>
             </div>
           </div>
+        </div>
+      )}
+
+      {activeSubTab === 'ai_training' && (user.role === 'admin' || user.role === 'administrador') && (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start animate-fade-in text-xs text-slate-700">
+          
+          {/* Left Column: Upload & Extract Form (1 column) */}
+          <div className="bg-white rounded-3xl border border-brand-green-light/40 p-6 shadow-sm space-y-5">
+            <div className="border-b border-brand-green-light/40 pb-2 flex items-center gap-2 text-brand-green-dark">
+              <FileText className="w-5 h-5 text-brand-green" />
+              <div>
+                <h2 className="font-display font-bold text-sm">Carregar PDF de Treinamento</h2>
+                <p className="text-[11px] text-[#5a5a40] font-light mt-0.5">
+                  Envie documentos oficiais para treinar a Inteligência Artificial com regras atualizadas.
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-[10px] font-bold text-slate-700 mb-2">Arquivo PDF (.pdf)</label>
+                <div className="relative border-2 border-dashed border-slate-200 hover:border-brand-green rounded-2xl p-6 text-center transition bg-slate-50 cursor-pointer">
+                  <input
+                    type="file"
+                    accept="application/pdf"
+                    onChange={handlePdfFileChange}
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                    disabled={isParsingPdf}
+                  />
+                  <div className="space-y-2">
+                    <Upload className="w-8 h-8 text-slate-400 mx-auto animate-pulse" />
+                    <p className="text-xs font-medium text-slate-600">
+                      {pdfFile ? pdfFile.name : "Clique para selecionar ou arraste o PDF"}
+                    </p>
+                    <p className="text-[10px] text-slate-400 font-light">
+                      Apenas arquivos PDF são aceitos
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {isParsingPdf && (
+                <div className="p-4 bg-blue-50/50 border border-blue-100 rounded-2xl space-y-2 animate-pulse">
+                  <div className="flex items-center gap-2 text-blue-700">
+                    <div className="w-4 h-4 border-2 border-blue-700 border-t-transparent rounded-full animate-spin"></div>
+                    <span className="font-bold text-xs">Analisando e extraindo textos do PDF...</span>
+                  </div>
+                  <p className="text-[10px] text-blue-600 font-light">
+                    Isso pode levar alguns segundos dependendo do tamanho do documento.
+                  </p>
+                </div>
+              )}
+
+              {parsedDocText && !isParsingPdf && (
+                <form onSubmit={handleSaveAiDoc} className="space-y-4 animate-fade-in">
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-700 mb-1">Título do Documento *</label>
+                    <input
+                      type="text"
+                      required
+                      value={docTitle}
+                      onChange={(e) => setDocTitle(e.target.value)}
+                      placeholder="Ex: Regulamento do Auxílio Vera Cruz"
+                      className="w-full border border-slate-200 p-2.5 rounded-xl text-xs bg-slate-50 focus:outline-none focus:border-brand-green font-semibold text-slate-800"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-700 mb-1">Conteúdo Extraído (Revise e edite se necessário) *</label>
+                    <textarea
+                      required
+                      value={parsedDocText}
+                      onChange={(e) => setParsedDocText(e.target.value)}
+                      rows={12}
+                      className="w-full border border-slate-200 p-3 rounded-2xl text-xs bg-slate-50 focus:outline-none focus:border-brand-green resize-none font-mono leading-relaxed"
+                    />
+                  </div>
+
+                  <button
+                    type="submit"
+                    className="w-full bg-brand-green hover:bg-brand-green-dark text-white text-xs font-bold py-3 rounded-xl shadow-md transition flex items-center justify-center gap-2"
+                  >
+                    <CheckCircle2 className="w-4 h-4" /> Salvar no Banco de Treinamento
+                  </button>
+                </form>
+              )}
+            </div>
+          </div>
+
+          {/* Right Column: Active Documents List (2 columns) */}
+          <div className="lg:col-span-2 space-y-4">
+            <div className="bg-white rounded-3xl border border-slate-100 p-6 shadow-sm space-y-4">
+              <div className="flex items-center justify-between border-b border-slate-50 pb-2">
+                <div>
+                  <h2 className="font-display font-bold text-base text-brand-green-dark">Banco de Treinamento da IA</h2>
+                  <p className="text-[10px] text-slate-400 mt-0.5">Estes documentos alimentam as respostas do assistente virtual em tempo real.</p>
+                </div>
+                <div className="text-[10px] font-mono text-slate-400 bg-slate-100 px-2.5 py-1 rounded-full shrink-0 font-bold">
+                  {aiDocs.length} Documento(s)
+                </div>
+              </div>
+
+              <div className="space-y-4 max-h-[650px] overflow-y-auto pr-1">
+                {aiDocs.length === 0 ? (
+                  <div className="text-center py-16 space-y-2">
+                    <FileText className="w-10 h-10 text-slate-300 mx-auto" />
+                    <p className="text-xs text-slate-400">Nenhum documento de treinamento cadastrado.</p>
+                    <p className="text-[10px] text-slate-400 font-light max-w-xs mx-auto">
+                      Carregue um arquivo PDF à esquerda para iniciar o treinamento do assistente virtual.
+                    </p>
+                  </div>
+                ) : (
+                  aiDocs.map((doc) => (
+                    <div key={doc.id} className="p-5 bg-slate-50 rounded-2xl border border-slate-100 flex flex-col gap-3 hover:shadow-xs transition">
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="space-y-1">
+                          <h4 className="font-display font-bold text-xs text-slate-800 flex items-center gap-2">
+                            📄 {doc.title}
+                          </h4>
+                          <p className="text-[10px] text-slate-400">
+                            Adicionado em {new Date(doc.createdAt).toLocaleDateString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+                          </p>
+                        </div>
+
+                        <div className="flex items-center gap-3">
+                          <button
+                            type="button"
+                            onClick={() => handleToggleAiDocActive(doc.id, doc.active)}
+                            className={`px-2.5 py-1 text-[10px] font-bold rounded-lg border transition ${
+                              doc.active 
+                                ? 'bg-emerald-50 text-emerald-700 border-emerald-200' 
+                                : 'bg-slate-100 text-slate-600 border-slate-200'
+                            }`}
+                          >
+                            {doc.active ? 'Ativo na IA' : 'Pausado'}
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteAiDoc(doc.id, doc.title)}
+                            className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition border border-transparent hover:border-red-100"
+                            title="Remover documento"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="bg-white p-3 rounded-xl border border-slate-100 max-h-[120px] overflow-y-auto">
+                        <p className="text-[11px] text-slate-500 whitespace-pre-wrap leading-relaxed font-mono">
+                          {doc.content.length > 300 ? `${doc.content.substring(0, 300)}...` : doc.content}
+                        </p>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          </div>
+
         </div>
       )}
       {/* Custom Confirmation Modal */}

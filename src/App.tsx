@@ -246,7 +246,7 @@ export default function App() {
           <div className="space-y-3">
             <h4 className="font-display font-semibold text-xs text-white uppercase tracking-wider">Canais de Contato</h4>
             <p className="text-[11px] text-brand-cream-dark flex items-center gap-2 font-mono">
-              <Phone className="w-3.5 h-3.5 text-yellow-300" /> Ouvidoria Social: (71) 3633-1234
+              <Phone className="w-3.5 h-3.5 text-yellow-300" /> Ouvidoria SEMPS: (71) 3838-8792
             </p>
             <p className="text-[11px] text-brand-cream-dark flex items-center gap-2">
               <MapPin className="w-3.5 h-3.5 text-yellow-300 shrink-0" /> Centro, Vera Cruz - BA, CEP 44470-000

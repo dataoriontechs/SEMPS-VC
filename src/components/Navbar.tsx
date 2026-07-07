@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { User, SystemNotification } from '../types';
-import { Building, LogIn, LogOut, Menu, X, ArrowDownToLine, Bell, ShieldAlert, Check } from 'lucide-react';
+import { Building, LogIn, LogOut, Menu, X, ArrowDownToLine, Bell, ShieldAlert, Check, WifiOff } from 'lucide-react';
 import { notificationsService } from '../services/firestoreService';
 
 interface NavbarProps {
@@ -17,6 +17,20 @@ export default function Navbar({ user, onLogout, onOpenAuth, activeTab, setActiv
   const [showNotifications, setShowNotifications] = useState(false);
   const [installed, setInstalled] = useState(false);
   const [notifications, setNotifications] = useState<SystemNotification[]>([]);
+  const [isOnline, setIsOnline] = useState(() => typeof navigator !== 'undefined' ? navigator.onLine : true);
+
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
 
   useEffect(() => {
     // Check if running as PWA or was installed
@@ -80,9 +94,17 @@ export default function Navbar({ user, onLogout, onOpenAuth, activeTab, setActiv
               <Building className="w-5 h-5" />
             </div>
             <div>
-              <span className="font-display font-bold text-base sm:text-lg tracking-tight block text-brand-green-dark">
-                SEMPS <span className="font-light text-[#5a5a40]">Vera Cruz</span>
-              </span>
+              <div className="flex items-center gap-2">
+                <span className="font-display font-bold text-base sm:text-lg tracking-tight block text-brand-green-dark">
+                  SEMPS <span className="font-light text-[#5a5a40]">Vera Cruz</span>
+                </span>
+                {!isOnline && (
+                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-red-100 text-red-600 font-bold text-[9px] uppercase tracking-wider animate-pulse">
+                    <span className="w-1.5 h-1.5 rounded-full bg-red-500" />
+                    Offline
+                  </span>
+                )}
+              </div>
               <span className="text-[9px] uppercase tracking-[0.2em] text-[#5a5a40] block font-semibold leading-none mt-0.5">
                 PROMOÇÃO SOCIAL E CIDADANIA
               </span>
@@ -271,6 +293,14 @@ export default function Navbar({ user, onLogout, onOpenAuth, activeTab, setActiv
               </button>
             )}
           </div>
+        </div>
+      )}
+
+      {/* Offline Alert Bar */}
+      {!isOnline && (
+        <div className="bg-red-500 text-white text-[11px] font-medium py-1.5 px-4 text-center flex items-center justify-center gap-1.5 shadow-inner transition-all duration-300">
+          <WifiOff className="w-3.5 h-3.5 animate-bounce" />
+          <span>Você está no <strong>Modo Offline</strong>. Algumas ações e atualizações em tempo real podem estar indisponíveis até que a conexão seja reestabelecida.</span>
         </div>
       )}
     </nav>

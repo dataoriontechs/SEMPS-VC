@@ -170,6 +170,18 @@
         "municipalHolidays": { "type": "array" },
         "blockedDates": { "type": "array" }
       }
+    },
+    "AiTrainingDoc": {
+      "title": "AiTrainingDoc",
+      "description": "Documentos de treinamento de IA",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "content": { "type": "string" },
+        "active": { "type": "boolean" },
+        "createdAt": { "type": "string" }
+      }
     }
   },
   "firestore": {
@@ -220,6 +232,10 @@
     "/configuracoes_sistema/{configId}": {
       "schema": "SystemConfig",
       "description": "Configurações gerais do sistema"
+    },
+    "/ai_training_docs/{docId}": {
+      "schema": "AiTrainingDoc",
+      "description": "Documentos de treinamento de IA"
     }
   }
 }

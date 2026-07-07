@@ -139,5 +139,11 @@ service cloud.firestore {
     match /tipos_beneficios/{document} {
       allow read, write: if true;
     }
+
+    // Documentos de Treinamento de IA (AI Training Docs)
+    match /ai_training_docs/{document} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
   }
 }
